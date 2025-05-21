@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kafka-batch.fullname" . }}-kafka-manager
+  labels:
+    {{- include "kafka-batch.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.kafkaManager.service.type }}
+  ports:
+    - port:       {{ .Values.kafkaManager.service.port }}
+      targetPort: {{ .Values.kafkaManager.service.targetPort }}
+  selector:
+    app: {{ include "kafka-batch.name" . }}

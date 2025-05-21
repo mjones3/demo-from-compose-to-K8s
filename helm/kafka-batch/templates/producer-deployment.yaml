@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka-batch.fullname" . }}-producer
+  labels:
+    {{ include "kafka-batch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.producer.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "kafka-batch.fullname" . }}-producer
+  template:
+    metadata:
+      labels:
+        app: {{ include "kafka-batch.fullname" . }}-producer
+    spec:
+      containers:
+        - name: producer
+          image: "{{ .Values.producer.image.repository }}:{{ .Values.producer.image.tag }}"
+          imagePullPolicy: {{ .Values.producer.image.pullPolicy | default "IfNotPresent" }}
+          env:
+{{ toYaml .Values.producer.env | indent 12 }}
+          resources:
+{{ toYaml .Values.producer.resources | indent 12 }}

@@ -1,0 +1,161 @@
+# values.yaml
+
+#───────────────────────────────────────────────────────────────────────────────
+# ZooKeeper subchart
+#───────────────────────────────────────────────────────────────────────────────
+zookeeper:
+  replicaCount: 1
+
+  image:
+    repository: confluentinc/cp-zookeeper
+    tag:        latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type:       ClusterIP
+    port:       2181
+    targetPort: 2181
+
+  env:
+    - name: ZOOKEEPER_CLIENT_PORT
+      value: "2181"
+
+  readinessProbe:
+    tcpSocket:
+      port: 2181
+    initialDelaySeconds: 10
+    periodSeconds:      5
+    failureThreshold:   6
+
+  resources:
+    requests:
+      cpu:    "250m"
+      memory: "512Mi"
+    limits:
+      cpu:    "500m"
+      memory: "1Gi"
+
+#───────────────────────────────────────────────────────────────────────────────
+# Kafka subchart
+#───────────────────────────────────────────────────────────────────────────────
+kafka:
+  replicaCount: 1
+
+  image:
+    repository: confluentinc/cp-kafka
+    tag:        latest
+    pullPolicy: IfNotPresent
+
+  env:
+    - name: KAFKA_ZOOKEEPER_CONNECT
+      value: "demo-zookeeper.default.svc.cluster.local:2181"
+    - name: KAFKA_LISTENERS
+      value: "INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093"
+    - name: KAFKA_ADVERTISED_LISTENERS
+      value: "INSIDE://demo-kafka.default.svc.cluster.local:9092,OUTSIDE://localhost:9093"
+    - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+      value: "INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT"
+    - name: KAFKA_INTER_BROKER_LISTENER_NAME
+      value: "INSIDE"
+
+  storage:
+    size:    500Mi
+    # class: standard      # uncomment & set to use a StorageClass
+
+  resources:
+    requests:
+      cpu:    "500m"
+      memory: "2Gi"
+    limits:
+      cpu:    "500m"
+      memory: "2Gi"
+
+  service:
+    type:       ClusterIP
+    port:       9092
+    targetPort: 9092
+
+#───────────────────────────────────────────────────────────────────────────────
+# Kafka Manager subchart
+#───────────────────────────────────────────────────────────────────────────────
+kafkaManager:
+  enabled: true
+
+  image:
+    repository: yourusername/kafka-manager
+    tag:        latest
+    pullPolicy: IfNotPresent
+
+  service:
+    type:       LoadBalancer  # or ClusterIP/NodePort if you prefer
+    port:       9000
+    targetPort: 9000
+
+  clusterConfigs:
+    - name:         demo-cluster
+      zkHosts:      "demo-zookeeper.default.svc.cluster.local:2181"
+      kafkaVersion: "2.8.0"
+      jmxEnabled:   false
+      pollConsumers: true
+
+  env:
+    - name: ZK_HOSTS
+      value: "demo-zookeeper.default.svc.cluster.local:2181"
+
+  resources:
+    requests:
+      cpu:    "100m"
+      memory: "256Mi"
+    limits:
+      cpu:    "200m"
+      memory: "512Mi"
+
+#───────────────────────────────────────────────────────────────────────────────
+# Producer app
+#───────────────────────────────────────────────────────────────────────────────
+producer:
+  image:
+    repository: yourusername/kafka-batch-producer
+    tag:        latest
+    pullPolicy: IfNotPresent
+
+  env:
+    - name: KAFKA_BROKER
+      value: "demo-kafka.default.svc.cluster.local:9092"
+  # expose the consumer on 8080 internally
+  service:
+    type:       ClusterIP
+    port:       8080
+    targetPort: 8080
+  resources:
+    requests:
+      cpu:    "100m"
+      memory: "128Mi"
+    limits:
+      cpu:    "200m"
+      memory: "256Mi"
+
+#───────────────────────────────────────────────────────────────────────────────
+# Consumer app
+#───────────────────────────────────────────────────────────────────────────────
+consumer:
+  image:
+    repository: yourusername/kafka-batch-consumer
+    tag:        latest
+    pullPolicy: IfNotPresent
+  # expose the consumer on 8080 internally
+  service:
+    type:       ClusterIP
+    port:       8080
+    targetPort: 8080
+  env:
+    - name: KAFKA_BROKER
+      value: "demo-kafka.default.svc.cluster.local:9092"
+
+  resources:
+    requests:
+      cpu:    "100m"
+      memory: "128Mi"
+    limits:
+      cpu:    "200m"
+      memory: "256Mi"

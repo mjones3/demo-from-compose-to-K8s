@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka-batch.fullname" . }}-zookeeper
+  labels:
+    {{ include "kafka-batch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.zookeeper.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "kafka-batch.fullname" . }}-zookeeper
+  template:
+    metadata:
+      labels:
+        app: {{ include "kafka-batch.fullname" . }}-zookeeper
+    spec:
+      containers:
+        - name: zookeeper
+          image: "{{ .Values.zookeeper.image.repository }}:{{ .Values.zookeeper.image.tag }}"
+          imagePullPolicy: {{ .Values.zookeeper.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - containerPort: {{ .Values.zookeeper.service.port }}
+          env:
+{{ toYaml .Values.zookeeper.env | indent 12 }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.zookeeper.readinessProbe.tcpSocket.port }}
+            initialDelaySeconds: {{ .Values.zookeeper.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.zookeeper.readinessProbe.periodSeconds }}
+            failureThreshold: {{ .Values.zookeeper.readinessProbe.failureThreshold }}
+          resources:
+{{ toYaml .Values.zookeeper.resources | indent 12 }}

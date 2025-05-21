@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka-batch.fullname" . }}-kafka
+  labels:
+    {{ include "kafka-batch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.kafka.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "kafka-batch.fullname" . }}-kafka
+  template:
+    metadata:
+      labels:
+        app: {{ include "kafka-batch.fullname" . }}-kafka
+    spec:
+      containers:
+        - name: kafka
+          image: "{{ .Values.kafka.image.repository }}:{{ .Values.kafka.image.tag }}"
+          imagePullPolicy: {{ .Values.kafka.image.pullPolicy | default "IfNotPresent" }}
+          env:
+{{ toYaml .Values.kafka.env | indent 12 }}
+          ports:
+            - name: kafka
+              containerPort: {{ .Values.kafka.service.port | default 9092 }}
+          volumeMounts:
+            - name: kafka-data
+              mountPath: /var/lib/kafka/data
+          resources:
+{{ toYaml .Values.kafka.resources | indent 12 }}
+      volumes:
+        - name: kafka-data
+          persistentVolumeClaim:
+            claimName: {{ include "kafka-batch.fullname" . }}-kafka-pvc

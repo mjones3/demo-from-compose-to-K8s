@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka-batch.fullname" . }}-consumer
+  labels:
+    {{- include "kafka-batch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.consumer.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "kafka-batch.fullname" . }}-consumer
+  template:
+    metadata:
+      labels:
+        app: {{ include "kafka-batch.fullname" . }}-consumer
+    spec:
+      containers:
+        - name: consumer
+          image: "{{ .Values.consumer.image.repository }}:{{ .Values.consumer.image.tag }}"
+          imagePullPolicy: {{ .Values.consumer.image.pullPolicy | default "IfNotPresent" }}
+          env:
+{{ toYaml .Values.consumer.env | indent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.consumer.service.targetPort | default 8080 }}

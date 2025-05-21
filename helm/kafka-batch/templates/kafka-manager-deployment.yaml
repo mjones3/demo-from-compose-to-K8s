@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kafka-batch.fullname" . }}-kafka-manager
+  labels:
+    {{ include "kafka-batch.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.kafkaManager.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ include "kafka-batch.fullname" . }}-kafka-manager
+  template:
+    metadata:
+      labels:
+        app: {{ include "kafka-batch.fullname" . }}-kafka-manager
+    spec:
+      containers:
+        - name: kafka-manager
+          image: "{{ .Values.kafkaManager.image.repository }}:{{ .Values.kafkaManager.image.tag }}"
+          imagePullPolicy: {{ .Values.kafkaManager.image.pullPolicy | default "IfNotPresent" }}
+          env:
+{{ toYaml .Values.kafkaManager.env | indent 12 }}
+          args:
+            # ensure it picks up our override in config block if you have one
+            - "-Dconfig.file=/etc/kafka-manager/application.conf"
+          ports:
+            - name: http
+              containerPort: {{ .Values.kafkaManager.service.targetPort | default 9000 }}
+          resources:
+{{ toYaml .Values.kafkaManager.resources | indent 12 }}
+
+      # if you need to mount a ConfigMap for application.conf:
+      # volumes:
+      #   - name: config
+      #     configMap:
+      #       name: {{ include "kafka-batch.fullname" . }}-km-config
